@@ -1,0 +1,130 @@
+#include <PS4USB.h>
+#ifdef dobogusinclude
+#include <spi4teensy3.h>
+#include <MatrixMath.h>
+#endif
+#include<SPI.h>
+int x = 0, y = 0, w = 0;
+float s1, s2, s3;
+int dir1, dir2, dir3;
+int sf = 1;
+//mtx_type A[3][3]; //Inverse
+USB Usb;
+PS4USB PS4(&Usb);
+
+bool printAngle, printTouch;
+uint8_t oldL2Value, oldR2Value;
+
+void setup() {
+  Serial.begin(115200);
+#if !defined(__MIPSEL__)
+  while (!Serial); // Wait for serial port to connect - used on Leonardo, Teensy and other boards with built-in USB CDC serial connection
+#endif
+  if (Usb.Init() == -1) {
+    Serial.print(F("\r\nOSC did not start"));
+    while (1); // Halt
+  }
+  Serial.print(F("\r\nPS4 USB Library Started"));
+
+
+
+  pinMode(3, OUTPUT);
+  pinMode(4, OUTPUT);
+  pinMode(5, OUTPUT);
+  dir1 = 25;
+  dir2 = 27;
+  dir3 = 29;
+
+
+  //  A[0][0] = -0.33;
+  //  A[0][1] = 0.58;
+  //  A[0][2] = 0.33;
+  //  A[1][0] = -0.33;
+  //  A[1][1] = -0.58;
+  //  A[1][2] = 0.33;
+  //  A[2][0] = 0.67;
+  //  A[2][1] = 0;
+  //  A[2][2] = 0.33;
+}
+
+void loop() {
+
+  Usb.Task();
+
+
+  if (PS4.connected()) {
+
+
+    if (PS4.getAnalogHat(LeftHatX) > 137 || PS4.getAnalogHat(LeftHatX) < 117 || PS4.getAnalogHat(LeftHatY) > 137 || PS4.getAnalogHat(LeftHatY) < 117 || PS4.getAnalogHat(RightHatX) > 137 || PS4.getAnalogHat(RightHatX) < 117 || PS4.getAnalogHat(RightHatY) > 137 || PS4.getAnalogHat(RightHatY) < 117)
+    {
+      Serial.print("YES");
+      x = PS4.getAnalogHat(LeftHatX);
+      y = PS4.getAnalogHat(LeftHatY);
+      w = PS4.getAnalogHat(RightHatX);
+      x = map(x, 0, 255, 255, -255);
+      y = map(y, 0, 255, -255, 255);
+      w = map(w, 0, 255, -255, 255);
+      //      B[0] = x;
+      //      B[1] = y;
+      //      B[2] = w;
+      s1 = sf * (-0.33 * x + 0.58 * y + 0.33 * w);
+      s2 = sf * (-0.33 * x + -0.58 * y + 0.33 * w);
+      s3 = sf * (0.67 * x + 0 * y + 0.33 * w);
+      if (s1 > 0)
+      {
+        digitalWrite(dir1, HIGH);
+      }
+      else {
+        digitalWrite(dir1, LOW);
+
+      }
+      if (s2 > 0)
+      {
+        digitalWrite(dir2, HIGH);
+      }
+      else
+      {
+        digitalWrite(dir2, LOW);
+
+      } if (s3 > 0)
+      {
+        digitalWrite(dir3, HIGH);
+
+      }
+      else
+      {
+        digitalWrite(dir3, LOW);
+      }
+    }
+    else
+    {
+      s1 = 0;
+      s2 = 0;
+      s3 = 0;
+    }
+    analogWrite(3, abs(s1));
+    analogWrite(4, abs(s2));
+    analogWrite(5, abs(s3));
+  }
+  else
+  {
+
+    s1 = 0;
+    s2 = 0;
+    s3 = 0;
+
+  }
+  if (PS4.getButtonClick(UP))
+    sf = sf + 0.5;
+  if (PS4.getButtonClick(DOWN))
+  {
+    if (sf > 0.5)
+      sf = sf - 0.5;
+  }
+  Serial.print("x=");
+  Serial.print(x);
+  Serial.print("y=");
+  Serial.print(y);
+  Serial.print("w=");
+  Serial.println(w);
+}
